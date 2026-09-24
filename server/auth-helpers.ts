@@ -158,3 +158,64 @@ export function requireRole(role: Role) {
     next();
   };
 }
+
+export interface PostRow {
+  id: number;
+  author_username: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CommentRow {
+  id: number;
+  post_id: number;
+  author_username: string;
+  content: string;
+  created_at: string;
+}
+
+export interface SafePost {
+  id: number;
+  authorUsername: string;
+  authorDisplayName: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  commentCount: number;
+}
+
+export interface SafeComment {
+  id: number;
+  postId: number;
+  authorUsername: string;
+  authorDisplayName: string;
+  content: string;
+  createdAt: string;
+}
+
+export function sanitizePost(row: any): SafePost {
+  return {
+    id: row.id,
+    authorUsername: row.author_username,
+    authorDisplayName: row.author_display_name || row.author_username,
+    title: row.title,
+    content: row.content,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    commentCount: Number(row.comment_count) || 0,
+  };
+}
+
+export function sanitizeComment(row: any): SafeComment {
+  return {
+    id: row.id,
+    postId: row.post_id,
+    authorUsername: row.author_username,
+    authorDisplayName: row.author_display_name || row.author_username,
+    content: row.content,
+    createdAt: row.created_at,
+  };
+}

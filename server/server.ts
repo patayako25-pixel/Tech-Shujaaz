@@ -12,6 +12,8 @@ import {
   AuthedRequest,
   CHOOSE_PROFILE_URL,
   sanitizeUser,
+  sanitizePost,
+  sanitizeComment,
   dashboardUrlForRole,
   postAuthUrl,
   getUserFromToken,
@@ -253,6 +255,117 @@ app.post('/api/admin/approve/:username', requireAdmin, async (req: Request, res:
   res.json({ success: true });
 });
 
+app.get('/api/posts', requireUser, async (_req: Request, res: Response) => {
+  const result = await pool.query(
+    `SELECT p.*, u.display_name AS author_display_name,
+            COUNT(c.id)::int AS comment_count
+     FROM posts p
+     JOIN users u ON u.username = p.author_username
+     LEFT JOIN post_comments c ON c.post_id = p.id
+     GROUP BY p.id, u.display_name
+     ORDER BY p.created_at DESC
+     LIMIT 100`
+  );
+  res.json({ success: true, posts: result.rows.map((row: any) => sanitizePost(row)) });
+});
+
+app.post('/api/posts', requireUser, async (req: Request, res: Response) => {
+  const currentUser = (req as AuthedRequest).currentUser;
+  const { title, content } = req.body as { title?: string; content?: string };
+
+  const trimmedTitle = (title || '').trim();
+  const trimmedContent = (content || '').trim();
+
+  if (trimmedTitle.length < 1 || trimmedTitle.length > 150) {
+    res.status(400).json({ success: false, message: 'Title must be between 1 and 150 characters.' });
+    return;
+  }
+  if (trimmedContent.length < 1 || trimmedContent.length > 4000) {
+    res.status(400).json({ success: false, message: 'Post must be between 1 and 4000 characters.' });
+    return;
+  }
+
+  const inserted = await pool.query(
+    `INSERT INTO posts (author_username, title, content) VALUES ($1, $2, $3) RETURNING *`,
+    [currentUser.username, trimmedTitle, trimmedContent]
+  );
+  const row = {
+    ...inserted.rows[0],
+    author_display_name: currentUser.display_name,
+    comment_count: 0,
+  };
+
+  res.json({ success: true, message: 'Post published.', post: sanitizePost(row) });
+});
+
+app.get('/api/posts/:id', requireUser, async (req: Request, res: Response) => {
+  const postId = Number(req.params.id);
+  if (!Number.isInteger(postId)) {
+    res.status(400).json({ success: false, message: 'Invalid post id.' });
+    return;
+  }
+
+  const postResult = await pool.query(
+    `SELECT p.*, u.display_name AS author_display_name,
+            COUNT(c.id)::int AS comment_count
+     FROM posts p
+     JOIN users u ON u.username = p.author_username
+     LEFT JOIN post_comments c ON c.post_id = p.id
+     WHERE p.id = $1
+     GROUP BY p.id, u.display_name`,
+    [postId]
+  );
+  if (postResult.rows.length === 0) {
+    res.status(404).json({ success: false, message: 'Post not found.' });
+    return;
+  }
+
+  const commentsResult = await pool.query(
+    `SELECT c.*, u.display_name AS author_display_name
+     FROM post_comments c
+     JOIN users u ON u.username = c.author_username
+     WHERE c.post_id = $1
+     ORDER BY c.created_at ASC`,
+    [postId]
+  );
+
+  res.json({
+    success: true,
+    post: sanitizePost(postResult.rows[0]),
+    comments: commentsResult.rows.map((row: any) => sanitizeComment(row)),
+  });
+});
+
+app.post('/api/posts/:id/comments', requireUser, async (req: Request, res: Response) => {
+  const currentUser = (req as AuthedRequest).currentUser;
+  const postId = Number(req.params.id);
+  if (!Number.isInteger(postId)) {
+    res.status(400).json({ success: false, message: 'Invalid post id.' });
+    return;
+  }
+
+  const { content } = req.body as { content?: string };
+  const trimmedContent = (content || '').trim();
+  if (trimmedContent.length < 1 || trimmedContent.length > 1000) {
+    res.status(400).json({ success: false, message: 'Comment must be between 1 and 1000 characters.' });
+    return;
+  }
+
+  const postExists = await pool.query('SELECT id FROM posts WHERE id = $1', [postId]);
+  if (postExists.rows.length === 0) {
+    res.status(404).json({ success: false, message: 'Post not found.' });
+    return;
+  }
+
+  const inserted = await pool.query(
+    `INSERT INTO post_comments (post_id, author_username, content) VALUES ($1, $2, $3) RETURNING *`,
+    [postId, currentUser.username, trimmedContent]
+  );
+  const row = { ...inserted.rows[0], author_display_name: currentUser.display_name };
+
+  res.json({ success: true, message: 'Comment added.', comment: sanitizeComment(row) });
+});
+
 async function ensureSchema(): Promise<void> {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS users (
@@ -303,6 +416,27 @@ async function ensureSchema(): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS posts (
+      id SERIAL PRIMARY KEY,
+      author_username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+      title VARCHAR(150) NOT NULL,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS post_comments (
+      id SERIAL PRIMARY KEY,
+      post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+      author_username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_posts_created ON posts(created_at DESC);`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_comments_post ON post_comments(post_id, created_at ASC);`);
 }
 
 async function seedAdmin(): Promise<void> {

@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="payments.css">
 </head>
 <body data-required-role="therapist">
 
@@ -60,25 +61,40 @@
 
         <div class="app-main">
           <div class="dashboard-view active" id="view-feed">
-            <div class="view-head">
-              <h2>Your Feed</h2>
-              <p>Latest articles, blog posts and events from Vijana Hub.</p>
+            <div class="view-head view-head-with-action">
+              <div>
+                <h2>Your Feed</h2>
+                <p>Latest articles, blog posts and events from Vijana Hub.</p>
+              </div>
+              <button class="btn btn-primary" type="button" id="new-post-btn">New Post</button>
             </div>
             <div class="feed-list" id="feed-list">
-              <article class="feed-item type-article">
-                <span class="meta">Article</span>
-                <h3>Supporting clients through exam season stress</h3>
-                <p>A short guide on recognising and responding to seasonal spikes in youth anxiety.</p>
+              <article class="feed-item type-opinion" data-placeholder-id="therapist-p1">
+                <span class="meta">Opinion / Thoughts</span>
+                <h3>Dwindling “I love you” and positive affirmation posts</h3>
+                <p>I've been struggling to find posts online that genuinely offer positive affirmations or even the words “I love you” in them.</p>
+                <div class="feed-full-content" hidden>I've recently been struggling to find posts online that genuinely offer positive affirmations or even the words "I love you" in them.
+
+I struggle with making human connections so spend most of my time online. Which can be lonely a lot of times so when I stumble upon a post that speaks positively, especially about mental health and the struggles that come with having mental health problems, it helps me get through just one more day.
+
+These posts seem to be few and far between lately which makes me think that maybe other people struggling with mental health don't believe in such posts anymore, especially hearing "I love you" from a random stranger(which might sound like sympathy )OR the world and all that's happening inside it has destroyed people's sense of empathy and compassion.
+
+It's just sad to see so many exaggerated posts on a daily basis rather than caring one's. The world is already trying to tear us down every chance it gets, would it really hurt if someone just took the time to show care (or claim care because they don't personally know you but understand how hard it is to keep going most times)
+
+Maybe it's just me. I would appreciate different perspectives on this, so please let me know what you think or how you feel about "I love you" and positive affirmation posts.
+
+Do they sound and feel disingenuous?</div>
               </article>
-              <article class="feed-item type-blog">
-                <span class="meta">Blog</span>
-                <h3>Notes from our peer supervision circle</h3>
-                <p>Reflections from this month's therapist peer-support session.</p>
+              <article class="feed-item type-question" data-placeholder-id="therapist-p2">
+                <span class="meta">Question</span>
+                <h3>why do I completely neglect myself when I'm alone?</h3>
+                <p>I feel like i stop taking care of myself when I'm alone and I don't know why. I lose all energy and motivation to do hygienic things or just take care of eating well.</p>
               </article>
-              <article class="feed-item type-event">
-                <span class="meta">Event</span>
-                <h3>Trauma-informed care workshop</h3>
-                <p>An upcoming workshop open to all verified therapists on the platform.</p>
+              <article class="feed-item type-question" data-placeholder-id="therapist-p3">
+                <span class="meta">Question</span>
+                <h3>Has anyone found the meaning of life yet</h3>
+                <p>Bro the idea of existence to me is sooo pointless like why am I here to work for the next 50 years of my life. When I ask people what's the point in life they look at me like I'm crazy and no one can give me a straight answer.</p>
+                <div class="feed-full-content" hidden>Bro the idea of existence to me is sooo pointless like why am I here to work for the next 50 years of my life if not more to have 10 years of being old and work every weekday until I eventually gain the balls to commit. When I ask people what's the point in life they look at me like I'm crazy and no one can give me a straight answer. I'm so close to being in a psych ward because the mental health lady I see thinks I'm just some crazy person who craves death but the thing is I reap no benefits in life so what's actually the point</div>
               </article>
             </div>
           </div>
@@ -88,10 +104,15 @@
               <h2>Articles</h2>
               <p>Write and manage the articles you publish for the community.</p>
             </div>
-            <div class="view-empty">
-              <span class="logo-mark"></span>
-              <p>Your published and draft articles will show up here.</p>
-            </div>
+            <article class="article-full">
+              <span class="meta">Health · Vijana Hub Team · 3 min read</span>
+              <h3>Can stress cause Bell's palsy?</h3>
+              <p>Bell's palsy is a sudden weakness or drooping on one side of the face. Many people ask whether stress is to blame. Stress may play a part for some people, but doctors usually look at other explanations first, and in most cases the exact cause is never confirmed.</p>
+              <p>The condition is thought to happen when the nerve that moves the facial muscles becomes inflamed and swollen. That nerve is squeezed as it passes through a narrow channel in the skull, which is why even a small amount of swelling can affect how the face moves.</p>
+              <p>Viral infections are a common suspect. The virus behind cold sores, and the one that causes chickenpox and later shingles, can lie dormant in the body and flare up again, sometimes inflaming this nerve.</p>
+              <p>Poorly controlled diabetes can also damage nerves, including the facial nerve, and produce symptoms that look like Bell's palsy. Lyme disease is a rarer cause.</p>
+              <p>Because a drooping face can also be a sign of a stroke, always get medical help quickly when it appears suddenly. A health professional can find the cause, start treatment early and talk with you about anything that may be adding to your stress.</p>
+            </article>
           </div>
 
           <div class="dashboard-view" id="view-events">
@@ -106,13 +127,78 @@
           </div>
 
           <div class="dashboard-view" id="view-payments">
-            <div class="view-head">
-              <h2>Payments</h2>
-              <p>Track earnings and manage your payout details.</p>
+            <div class="view-head view-head-with-action">
+              <div>
+                <h2>Payments</h2>
+                <p>Track earnings and manage your payout details.</p>
+              </div>
+              <button class="btn btn-secondary" type="button" id="pay-export">Export</button>
             </div>
-            <div class="view-empty">
-              <span class="logo-mark"></span>
-              <p>Your payment history will show up here.</p>
+
+            <div class="pay-summary">
+              <div class="pay-stat">
+                <span class="pay-label">Paid out</span>
+                <strong id="pay-paid">KES 0</strong>
+                <small id="pay-paid-note">From 0 completed sessions</small>
+              </div>
+              <div class="pay-stat">
+                <span class="pay-label">Upcoming</span>
+                <strong id="pay-pending">KES 0</strong>
+                <small id="pay-pending-note">0 upcoming booked sessions</small>
+              </div>
+              <div class="pay-stat">
+                <span class="pay-label">Sessions conducted</span>
+                <strong id="pay-sessions">0</strong>
+                <small id="pay-sessions-note">0 booked in total</small>
+              </div>
+              <div class="pay-stat">
+                <span class="pay-label">Average per session</span>
+                <strong id="pay-average">KES 0</strong>
+                <small>After fees</small>
+              </div>
+            </div>
+
+            <div class="pay-panel">
+              <div class="pay-panel-head">
+                <h3>Earnings</h3>
+                <div class="pay-range" role="group" aria-label="Chart range">
+                  <button type="button" class="active" data-range="30">30 days</button>
+                  <button type="button" data-range="12">12 months</button>
+                </div>
+              </div>
+              <div class="pay-chart" id="pay-chart"></div>
+              <div class="pay-axis" id="pay-axis"></div>
+            </div>
+
+            <div class="pay-panel">
+              <div class="pay-panel-head">
+                <h3>All payouts</h3>
+              </div>
+              <div class="pay-tools">
+                <select id="pay-filter" aria-label="Filter by status">
+                  <option value="all">All statuses</option>
+                  <option value="paid">Paid</option>
+                  <option value="pending">Pending</option>
+                </select>
+                <input type="search" id="pay-search" placeholder="Search client" aria-label="Search client">
+              </div>
+              <div class="pay-table-wrap">
+                <table class="pay-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Client</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th class="num">Charge</th>
+                      <th class="num">Fees</th>
+                      <th class="num">Net</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pay-rows"></tbody>
+                </table>
+              </div>
+              <p class="pay-empty" id="pay-empty">Loading your payments…</p>
             </div>
           </div>
         </div>
@@ -163,6 +249,7 @@
 
 <script src="script.js"></script>
 <script src="auth.js"></script>
+<script src="payments.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   const shell = document.getElementById('app-shell');

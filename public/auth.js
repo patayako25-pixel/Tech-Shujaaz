@@ -184,6 +184,16 @@ function setupSelectRoleForm() {
     if (!form)
         return;
     const messageEl = document.getElementById('role-select-message');
+    const therapistFields = document.getElementById('therapist-fields');
+    const roleInputs = form.querySelectorAll('input[name="role"]');
+    function syncTherapistFields() {
+        if (!therapistFields)
+            return;
+        const selected = form.querySelector('input[name="role"]:checked');
+        therapistFields.style.display = selected && selected.value === 'therapist' ? 'block' : 'none';
+    }
+    roleInputs.forEach((input) => input.addEventListener('change', syncTherapistFields));
+    syncTherapistFields();
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         const roleInput = form.querySelector('input[name="role"]:checked');
@@ -192,7 +202,16 @@ function setupSelectRoleForm() {
             return;
         }
         const role = roleInput.value;
-        const result = await postJson('/api/select-role', { role });
+        const payload = { role };
+        if (role === 'therapist') {
+            const emailInput = document.getElementById('therapist-email');
+            const phoneInput = document.getElementById('therapist-phone');
+            const credentialsInput = document.getElementById('therapist-credentials');
+            payload.email = emailInput ? emailInput.value : '';
+            payload.phone = phoneInput ? phoneInput.value : '';
+            payload.credentials = credentialsInput ? credentialsInput.value : '';
+        }
+        const result = await postJson('/api/select-role', payload);
         showFormMessage(messageEl, result.message, !result.success);
         if (result.success && result.redirect) {
             const redirectTo = result.redirect;
@@ -299,9 +318,24 @@ async function setupAdminPanel() {
         }
         data.pending.forEach((entry) => {
             const row = document.createElement('div');
-            row.className = 'admin-row';
-            const name = document.createElement('span');
-            name.textContent = entry.username;
+            row.className = 'admin-row admin-row-detailed';
+            const info = document.createElement('div');
+            info.className = 'admin-row-info';
+            const name = document.createElement('strong');
+            name.textContent = entry.display_name || entry.username;
+            info.appendChild(name);
+            const details = document.createElement('div');
+            details.className = 'admin-row-details';
+            details.textContent =
+                (entry.email || 'No email provided') +
+                    (entry.phone ? ' · ' + entry.phone : '');
+            info.appendChild(details);
+            if (entry.credentials) {
+                const credentialsEl = document.createElement('p');
+                credentialsEl.className = 'admin-row-credentials';
+                credentialsEl.textContent = entry.credentials;
+                info.appendChild(credentialsEl);
+            }
             const approveBtn = document.createElement('button');
             approveBtn.type = 'button';
             approveBtn.textContent = 'Approve';
@@ -313,7 +347,7 @@ async function setupAdminPanel() {
                 });
                 setupAdminPanel();
             });
-            row.appendChild(name);
+            row.appendChild(info);
             row.appendChild(approveBtn);
             pendingList.appendChild(row);
         });

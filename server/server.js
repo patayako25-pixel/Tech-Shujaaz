@@ -6,99 +6,18 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cookie_parser_1 = __importDefault(require("cookie-parser"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
-const crypto_1 = __importDefault(require("crypto"));
 const path_1 = __importDefault(require("path"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const db_1 = __importDefault(require("./db"));
+const sessions_1 = __importDefault(require("./routes/sessions"));
+const auth_helpers_1 = require("./auth-helpers");
 dotenv_1.default.config();
-const CHOOSE_PROFILE_URL = 'choose-profile.html';
 const app = (0, express_1.default)();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
-const COOKIE_NAME = 'vijana_session';
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 app.use(express_1.default.json({ limit: '5mb' }));
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.static(path_1.default.join(__dirname, '..', 'public')));
-function sanitizeUser(row) {
-    return {
-        username: row.username,
-        role: row.role,
-        status: row.status,
-        verified: row.verified,
-        isAdmin: row.is_admin,
-        displayName: row.display_name,
-        bio: row.bio,
-        avatarUrl: row.avatar_url,
-    };
-}
-function dashboardUrlForRole(role) {
-    if (role === 'mentor')
-        return 'dashboard-mentor.html';
-    if (role === 'therapist')
-        return 'dashboard-therapist.html';
-    return 'dashboard-user.html';
-}
-function postAuthUrl(role) {
-    if (!role)
-        return CHOOSE_PROFILE_URL;
-    return dashboardUrlForRole(role);
-}
-async function getUserFromToken(token) {
-    if (!token)
-        return null;
-    const sessionResult = await db_1.default.query('SELECT username, expires_at FROM sessions WHERE token = $1', [token]);
-    if (sessionResult.rows.length === 0)
-        return null;
-    const session = sessionResult.rows[0];
-    if (new Date(session.expires_at).getTime() < Date.now()) {
-        await db_1.default.query('DELETE FROM sessions WHERE token = $1', [token]);
-        return null;
-    }
-    const newExpiresAt = new Date(Date.now() + THIRTY_DAYS_MS);
-    await db_1.default.query('UPDATE sessions SET expires_at = $1 WHERE token = $2', [
-        newExpiresAt,
-        token,
-    ]);
-    const userResult = await db_1.default.query('SELECT * FROM users WHERE username = $1', [
-        session.username,
-    ]);
-    if (userResult.rows.length === 0)
-        return null;
-    return userResult.rows[0];
-}
-function setSessionCookie(res, token) {
-    res.cookie(COOKIE_NAME, token, {
-        httpOnly: true,
-        sameSite: 'lax',
-        maxAge: THIRTY_DAYS_MS,
-    });
-}
-async function createSession(username) {
-    const token = crypto_1.default.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + THIRTY_DAYS_MS);
-    await db_1.default.query('INSERT INTO sessions (token, username, expires_at) VALUES ($1, $2, $3)', [token, username, expiresAt]);
-    return token;
-}
-async function requireUser(req, res, next) {
-    const token = req.cookies[COOKIE_NAME];
-    const user = await getUserFromToken(token);
-    if (!user) {
-        res.status(401).json({ success: false, message: 'Not signed in.' });
-        return;
-    }
-    req.currentUser = user;
-    next();
-}
-async function requireAdmin(req, res, next) {
-    const token = req.cookies[COOKIE_NAME];
-    const user = await getUserFromToken(token);
-    if (!user || !user.is_admin) {
-        res.status(403).json({ success: false, message: 'Admin access required.' });
-        return;
-    }
-    req.currentUser = user;
-    next();
-}
+app.use('/api', sessions_1.default);
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     const trimmed = (username || '').trim();
@@ -121,18 +40,18 @@ app.post('/api/register', async (req, res) => {
     const inserted = await db_1.default.query(`INSERT INTO users (username, password_hash, role, status, verified, is_admin)
      VALUES ($1, $2, NULL, 'active', false, false) RETURNING *`, [trimmed, passwordHash]);
     const user = inserted.rows[0];
-    const token = await createSession(user.username);
-    setSessionCookie(res, token);
+    const token = await (0, auth_helpers_1.createSession)(user.username);
+    (0, auth_helpers_1.setSessionCookie)(res, token);
     res.json({
         success: true,
         message: 'Account created. Choose your profile type to continue.',
-        user: sanitizeUser(user),
-        redirect: CHOOSE_PROFILE_URL,
+        user: (0, auth_helpers_1.sanitizeUser)(user),
+        redirect: auth_helpers_1.CHOOSE_PROFILE_URL,
     });
 });
-app.post('/api/select-role', requireUser, async (req, res) => {
+app.post('/api/select-role', auth_helpers_1.requireUser, async (req, res) => {
     const currentUser = req.currentUser;
-    const { role } = req.body;
+    const { role, email, phone, credentials } = req.body;
     const validRoles = ['user', 'mentor', 'therapist'];
     if (!role || !validRoles.includes(role)) {
         res.status(400).json({ success: false, message: 'Please choose a valid profile type.' });
@@ -142,22 +61,41 @@ app.post('/api/select-role', requireUser, async (req, res) => {
         res.status(409).json({
             success: false,
             message: 'Your profile type is already set.',
-            redirect: dashboardUrlForRole(currentUser.role),
+            redirect: (0, auth_helpers_1.dashboardUrlForRole)(currentUser.role),
         });
         return;
     }
+    const trimmedEmail = (email || '').trim();
+    const trimmedPhone = (phone || '').trim();
+    const trimmedCredentials = (credentials || '').trim();
+    if (role === 'therapist') {
+        const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailPattern.test(trimmedEmail)) {
+            res.status(400).json({ success: false, message: 'A valid email is required for therapist applications.' });
+            return;
+        }
+        const existingEmail = await db_1.default.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [trimmedEmail]);
+        if (existingEmail.rows.length > 0) {
+            res.status(409).json({ success: false, message: 'That email is already in use.' });
+            return;
+        }
+    }
     const status = role === 'therapist' ? 'pending' : 'active';
-    await db_1.default.query('UPDATE users SET role = $1, status = $2 WHERE username = $3', [
+    await db_1.default.query(`UPDATE users SET role = $1, status = $2, email = $3, phone = $4, credentials = $5
+     WHERE username = $6`, [
         role,
         status,
+        role === 'therapist' && trimmedEmail.length > 0 ? trimmedEmail : null,
+        role === 'therapist' && trimmedPhone.length > 0 ? trimmedPhone : null,
+        role === 'therapist' && trimmedCredentials.length > 0 ? trimmedCredentials : null,
         currentUser.username,
     ]);
     const message = role === 'therapist'
-        ? 'Profile set. Your therapist account is pending admin approval.'
+        ? 'Application submitted. Your therapist account is pending admin approval.'
         : 'Profile set. Welcome to Vijana Hub!';
-    res.json({ success: true, message, redirect: dashboardUrlForRole(role) });
+    res.json({ success: true, message, redirect: (0, auth_helpers_1.dashboardUrlForRole)(role) });
 });
-app.post('/api/update-profile', requireUser, async (req, res) => {
+app.post('/api/update-profile', auth_helpers_1.requireUser, async (req, res) => {
     const currentUser = req.currentUser;
     const { displayName, bio, avatarUrl } = req.body;
     const trimmedName = (displayName || '').trim();
@@ -180,7 +118,7 @@ app.post('/api/update-profile', requireUser, async (req, res) => {
     res.json({
         success: true,
         message: 'Profile updated.',
-        user: sanitizeUser(updated.rows[0]),
+        user: (0, auth_helpers_1.sanitizeUser)(updated.rows[0]),
     });
 });
 app.post('/api/login', async (req, res) => {
@@ -199,39 +137,40 @@ app.post('/api/login', async (req, res) => {
         res.status(401).json({ success: false, message: 'Incorrect username or password.' });
         return;
     }
-    const token = await createSession(user.username);
-    setSessionCookie(res, token);
+    const token = await (0, auth_helpers_1.createSession)(user.username);
+    (0, auth_helpers_1.setSessionCookie)(res, token);
     res.json({
         success: true,
         message: 'Signed in successfully.',
-        user: sanitizeUser(user),
-        redirect: postAuthUrl(user.role),
+        user: (0, auth_helpers_1.sanitizeUser)(user),
+        redirect: (0, auth_helpers_1.postAuthUrl)(user.role),
     });
 });
 app.post('/api/logout', async (req, res) => {
-    const token = req.cookies[COOKIE_NAME];
+    const token = req.cookies[auth_helpers_1.COOKIE_NAME];
     if (token) {
         await db_1.default.query('DELETE FROM sessions WHERE token = $1', [token]);
     }
-    res.clearCookie(COOKIE_NAME);
+    res.clearCookie(auth_helpers_1.COOKIE_NAME);
     res.json({ success: true });
 });
 app.get('/api/me', async (req, res) => {
-    const token = req.cookies[COOKIE_NAME];
-    const user = await getUserFromToken(token);
+    const token = req.cookies[auth_helpers_1.COOKIE_NAME];
+    const user = await (0, auth_helpers_1.getUserFromToken)(token);
     if (!user) {
         res.json({ user: null });
         return;
     }
-    setSessionCookie(res, token);
-    res.json({ user: sanitizeUser(user) });
+    (0, auth_helpers_1.setSessionCookie)(res, token);
+    res.json({ user: (0, auth_helpers_1.sanitizeUser)(user) });
 });
-app.get('/api/admin/therapists', requireAdmin, async (_req, res) => {
-    const pending = await db_1.default.query(`SELECT username, created_at FROM users WHERE role = 'therapist' AND status = 'pending' ORDER BY created_at ASC`);
+app.get('/api/admin/therapists', auth_helpers_1.requireAdmin, async (_req, res) => {
+    const pending = await db_1.default.query(`SELECT username, display_name, email, phone, credentials, created_at
+     FROM users WHERE role = 'therapist' AND status = 'pending' ORDER BY created_at ASC`);
     const active = await db_1.default.query(`SELECT username, created_at FROM users WHERE role = 'therapist' AND status = 'active' ORDER BY created_at ASC`);
     res.json({ pending: pending.rows, active: active.rows });
 });
-app.post('/api/admin/approve/:username', requireAdmin, async (req, res) => {
+app.post('/api/admin/approve/:username', auth_helpers_1.requireAdmin, async (req, res) => {
     const targetUsername = req.params.username;
     const result = await db_1.default.query(`UPDATE users SET status = 'active', verified = true
      WHERE LOWER(username) = LOWER($1) AND role = 'therapist' RETURNING username`, [targetUsername]);
@@ -259,11 +198,36 @@ async function ensureSchema() {
     await db_1.default.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(60);`);
     await db_1.default.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio VARCHAR(280);`);
     await db_1.default.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url TEXT;`);
+    await db_1.default.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255) UNIQUE;`);
+    await db_1.default.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(30);`);
+    await db_1.default.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS credentials TEXT;`);
     await db_1.default.query(`
     CREATE TABLE IF NOT EXISTS sessions (
       token TEXT PRIMARY KEY,
       username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
       expires_at TIMESTAMPTZ NOT NULL
+    );
+  `);
+    await db_1.default.query(`
+    CREATE TABLE IF NOT EXISTS therapist_slots (
+      id SERIAL PRIMARY KEY,
+      therapist_username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+      start_time TIMESTAMPTZ NOT NULL,
+      end_time TIMESTAMPTZ NOT NULL,
+      session_type VARCHAR(10) NOT NULL DEFAULT 'virtual',
+      status VARCHAR(20) NOT NULL DEFAULT 'open',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+    await db_1.default.query(`ALTER TABLE therapist_slots ADD COLUMN IF NOT EXISTS session_type VARCHAR(10) NOT NULL DEFAULT 'virtual';`);
+    await db_1.default.query(`
+    CREATE TABLE IF NOT EXISTS bookings (
+      id SERIAL PRIMARY KEY,
+      slot_id INTEGER NOT NULL UNIQUE REFERENCES therapist_slots(id) ON DELETE CASCADE,
+      user_username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+      therapist_username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+      status VARCHAR(20) NOT NULL DEFAULT 'confirmed',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `);
 }

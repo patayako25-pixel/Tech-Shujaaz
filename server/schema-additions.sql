@@ -24,3 +24,23 @@ CREATE TABLE IF NOT EXISTS bookings (
 CREATE INDEX IF NOT EXISTS idx_slots_therapist ON therapist_slots(therapist_username, start_time);
 CREATE INDEX IF NOT EXISTS idx_bookings_user ON bookings(user_username);
 CREATE INDEX IF NOT EXISTS idx_bookings_therapist ON bookings(therapist_username);
+
+CREATE TABLE IF NOT EXISTS posts (
+  id SERIAL PRIMARY KEY,
+  author_username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+  title VARCHAR(150) NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS post_comments (
+  id SERIAL PRIMARY KEY,
+  post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  author_username VARCHAR(50) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_posts_created ON posts(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_comments_post ON post_comments(post_id, created_at ASC);

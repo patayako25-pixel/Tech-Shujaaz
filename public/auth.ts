@@ -22,6 +22,26 @@ interface ApiResult {
   user?: CurrentUser;
 }
 
+interface SafePost {
+  id: number;
+  authorUsername: string;
+  authorDisplayName: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  commentCount: number;
+}
+
+interface SafeComment {
+  id: number;
+  postId: number;
+  authorUsername: string;
+  authorDisplayName: string;
+  content: string;
+  createdAt: string;
+}
+
 function dashboardUrlForRole(role: Role): string {
   if (role === 'mentor') return 'dashboard-mentor.html';
   if (role === 'therapist') return 'dashboard-therapist.html';
@@ -427,6 +447,401 @@ async function setupAdminPanel(): Promise<void> {
   }
 }
 
+const COMMENT_ICON_SVG =
+  '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>';
+
+let modalOverlay: HTMLElement | null = null;
+
+function ensureModal(): HTMLElement {
+  if (modalOverlay) return modalOverlay;
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const card = document.createElement('div');
+  card.className = 'modal-card';
+
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'modal-close';
+  closeButton.textContent = '×';
+  closeButton.addEventListener('click', closeModal);
+
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+  body.id = 'post-modal-body';
+
+  card.appendChild(closeButton);
+  card.appendChild(body);
+  overlay.appendChild(card);
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) closeModal();
+  });
+
+  document.body.appendChild(overlay);
+  modalOverlay = overlay;
+  return overlay;
+}
+
+function closeModal(): void {
+  if (modalOverlay) modalOverlay.classList.remove('open');
+}
+
+function openModal(): void {
+  const overlay = ensureModal();
+  overlay.classList.add('open');
+}
+
+function formatRelativeTime(iso: string): string {
+  const then = new Date(iso).getTime();
+  const now = Date.now();
+  const diffSec = Math.max(1, Math.floor((now - then) / 1000));
+  if (diffSec < 60) return diffSec + 's ago';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return diffMin + 'm ago';
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return diffHr + 'h ago';
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return diffDay + 'd ago';
+  return new Date(iso).toLocaleDateString();
+}
+
+function buildCommentButton(count: number): HTMLButtonElement {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'feed-comment-btn';
+  button.innerHTML = COMMENT_ICON_SVG + '<span class="feed-comment-count">' + count + '</span>';
+  return button;
+}
+
+function updateFeedCommentCount(postId: number, count: number): void {
+  const el = document.querySelector<HTMLElement>(
+    '#feed-list .feed-item[data-post-id="' + postId + '"] .feed-comment-count'
+  );
+  if (el) el.textContent = String(count);
+}
+
+function renderPostModalBody(
+  body: HTMLElement,
+  post: { title: string; content: string; authorDisplayName: string; createdAt: string },
+  comments: SafeComment[],
+  postId: number | null,
+  onSubmitComment: (content: string) => Promise<{ success: boolean; message: string; comment?: SafeComment }>
+): void {
+  body.innerHTML = '';
+
+  const meta = document.createElement('span');
+  meta.className = 'meta';
+  meta.textContent = post.authorDisplayName + ' · ' + formatRelativeTime(post.createdAt);
+  body.appendChild(meta);
+
+  const title = document.createElement('h3');
+  title.textContent = post.title;
+  body.appendChild(title);
+
+  const content = document.createElement('p');
+  content.textContent = post.content;
+  content.className = 'modal-post-content';
+  body.appendChild(content);
+
+  const commentsHeading = document.createElement('h4');
+  commentsHeading.className = 'modal-comments-heading';
+  commentsHeading.textContent = 'Comments';
+  body.appendChild(commentsHeading);
+
+  const commentList = document.createElement('div');
+  commentList.className = 'comment-thread';
+  body.appendChild(commentList);
+
+  const localComments = comments.slice();
+
+  function renderComments(): void {
+    commentList.innerHTML = '';
+    if (localComments.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'admin-empty';
+      empty.textContent = 'No comments yet. Be the first to respond.';
+      commentList.appendChild(empty);
+      return;
+    }
+    localComments.forEach((comment) => {
+      const item = document.createElement('div');
+      item.className = 'comment-item';
+      const commentMeta = document.createElement('span');
+      commentMeta.className = 'meta';
+      commentMeta.textContent = comment.authorDisplayName + ' · ' + formatRelativeTime(comment.createdAt);
+      const commentText = document.createElement('p');
+      commentText.textContent = comment.content;
+      item.appendChild(commentMeta);
+      item.appendChild(commentText);
+      commentList.appendChild(item);
+    });
+  }
+  renderComments();
+
+  const form = document.createElement('form');
+  form.className = 'comment-form';
+  const textarea = document.createElement('textarea');
+  textarea.placeholder = 'Write a comment…';
+  textarea.required = true;
+  const submitButton = document.createElement('button');
+  submitButton.type = 'submit';
+  submitButton.className = 'btn btn-primary';
+  submitButton.textContent = 'Comment';
+  const formMessage = document.createElement('p');
+  formMessage.className = 'auth-message';
+
+  form.appendChild(textarea);
+  form.appendChild(submitButton);
+  form.appendChild(formMessage);
+  body.appendChild(form);
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const value = textarea.value.trim();
+    if (!value) return;
+    const result = await onSubmitComment(value);
+    if (result.success && result.comment) {
+      localComments.push(result.comment);
+      renderComments();
+      textarea.value = '';
+      if (postId !== null) updateFeedCommentCount(postId, localComments.length);
+      showFormMessage(formMessage, 'Comment added.', false);
+    } else {
+      showFormMessage(formMessage, result.message || 'Could not add comment.', true);
+    }
+  });
+}
+
+async function openPostModal(postId: number): Promise<void> {
+  ensureModal();
+  const body = document.getElementById('post-modal-body');
+  if (!body) return;
+  body.innerHTML = '<p class="modal-loading">Loading post…</p>';
+  openModal();
+
+  const response = await fetch('/api/posts/' + postId, { credentials: 'include' });
+  const data = (await response.json()) as { success: boolean; post?: SafePost; comments?: SafeComment[] };
+  if (!data.success || !data.post) {
+    body.innerHTML = '<p class="modal-loading">Could not load this post.</p>';
+    return;
+  }
+
+  renderPostModalBody(body, data.post, data.comments || [], postId, async (content) => {
+    const response2 = await fetch('/api/posts/' + postId + '/comments', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    const result = (await response2.json()) as { success: boolean; message: string; comment?: SafeComment };
+    return result;
+  });
+}
+
+function getLocalCommentsKey(placeholderId: string): string {
+  return 'vijana-static-comments:' + placeholderId;
+}
+
+interface LocalComment {
+  author: string;
+  content: string;
+  createdAt: string;
+}
+
+function getLocalComments(placeholderId: string): LocalComment[] {
+  const raw = window.localStorage.getItem(getLocalCommentsKey(placeholderId));
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalComment(placeholderId: string, comment: LocalComment): void {
+  const existing = getLocalComments(placeholderId);
+  existing.push(comment);
+  window.localStorage.setItem(getLocalCommentsKey(placeholderId), JSON.stringify(existing));
+}
+
+function openStaticPostModal(item: HTMLElement, placeholderId: string, currentUserDisplay: string): void {
+  ensureModal();
+  const body = document.getElementById('post-modal-body');
+  if (!body) return;
+
+  const titleText = item.querySelector('h3')?.textContent || '';
+  const fullContentEl = item.querySelector('.feed-full-content');
+  const contentText = fullContentEl
+    ? (fullContentEl.textContent || '').trim()
+    : item.querySelector('p')?.textContent || '';
+  const metaText = item.querySelector('.meta')?.textContent || '';
+
+  const fakePost = {
+    title: titleText,
+    content: contentText,
+    authorDisplayName: metaText,
+    createdAt: new Date().toISOString(),
+  };
+
+  const stored = getLocalComments(placeholderId);
+  const comments: SafeComment[] = stored.map((c, index) => ({
+    id: index,
+    postId: 0,
+    authorUsername: '',
+    authorDisplayName: c.author,
+    content: c.content,
+    createdAt: c.createdAt,
+  }));
+
+  renderPostModalBody(body, fakePost, comments, null, async (content) => {
+    const createdAt = new Date().toISOString();
+    saveLocalComment(placeholderId, { author: currentUserDisplay, content, createdAt });
+    const countEl = item.querySelector<HTMLElement>('.feed-comment-count');
+    if (countEl) countEl.textContent = String(getLocalComments(placeholderId).length);
+    return {
+      success: true,
+      message: 'Comment added.',
+      comment: {
+        id: getLocalComments(placeholderId).length,
+        postId: 0,
+        authorUsername: '',
+        authorDisplayName: currentUserDisplay,
+        content,
+        createdAt,
+      },
+    };
+  });
+
+  openModal();
+}
+
+function buildPostFeedItem(post: SafePost): HTMLElement {
+  const article = document.createElement('article');
+  article.className = 'feed-item type-post';
+  article.dataset.postId = String(post.id);
+
+  const meta = document.createElement('span');
+  meta.className = 'meta';
+  meta.textContent = 'Post · ' + post.authorDisplayName + ' · ' + formatRelativeTime(post.createdAt);
+  article.appendChild(meta);
+
+  const title = document.createElement('h3');
+  title.textContent = post.title;
+  title.className = 'feed-clickable-title';
+  article.appendChild(title);
+
+  const excerpt = document.createElement('p');
+  excerpt.textContent = post.content;
+  article.appendChild(excerpt);
+
+  const commentButton = buildCommentButton(post.commentCount);
+  article.appendChild(commentButton);
+
+  const open = () => openPostModal(post.id);
+  title.addEventListener('click', open);
+  commentButton.addEventListener('click', open);
+
+  return article;
+}
+
+function enhanceStaticFeedItems(currentUserDisplay: string): void {
+  const items = document.querySelectorAll<HTMLElement>('#feed-list .feed-item[data-placeholder-id]');
+  items.forEach((item) => {
+    const placeholderId = item.dataset.placeholderId || '';
+    const commentButton = buildCommentButton(getLocalComments(placeholderId).length);
+    item.appendChild(commentButton);
+
+    const titleEl = item.querySelector('h3');
+    if (titleEl) titleEl.classList.add('feed-clickable-title');
+
+    const open = () => openStaticPostModal(item, placeholderId, currentUserDisplay);
+    commentButton.addEventListener('click', open);
+    if (titleEl) titleEl.addEventListener('click', open);
+  });
+}
+
+function openComposeModal(onPublished: (post: SafePost) => void): void {
+  ensureModal();
+  const body = document.getElementById('post-modal-body');
+  if (!body) return;
+  body.innerHTML = '';
+
+  const heading = document.createElement('h3');
+  heading.textContent = 'New Post';
+  body.appendChild(heading);
+
+  const form = document.createElement('form');
+  form.className = 'compose-form';
+
+  const titleInput = document.createElement('input');
+  titleInput.type = 'text';
+  titleInput.placeholder = 'Title';
+  titleInput.maxLength = 150;
+  titleInput.required = true;
+
+  const contentInput = document.createElement('textarea');
+  contentInput.placeholder = "What's on your mind?";
+  contentInput.maxLength = 4000;
+  contentInput.required = true;
+
+  const submitButton = document.createElement('button');
+  submitButton.type = 'submit';
+  submitButton.className = 'btn btn-primary';
+  submitButton.textContent = 'Post';
+
+  const formMessage = document.createElement('p');
+  formMessage.className = 'auth-message';
+
+  form.appendChild(titleInput);
+  form.appendChild(contentInput);
+  form.appendChild(submitButton);
+  form.appendChild(formMessage);
+  body.appendChild(form);
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const result = (await postJson('/api/posts', {
+      title: titleInput.value,
+      content: contentInput.value,
+    })) as ApiResult & { post?: SafePost };
+    if (result.success && result.post) {
+      onPublished(result.post);
+      closeModal();
+    } else {
+      showFormMessage(formMessage, result.message || 'Could not publish post.', true);
+    }
+  });
+
+  openModal();
+}
+
+async function setupFeed(user: CurrentUser): Promise<void> {
+  const feedList = document.getElementById('feed-list');
+  if (!feedList) return;
+
+  const currentUserDisplay = displayNameFor(user);
+  enhanceStaticFeedItems(currentUserDisplay);
+
+  const newPostButton = document.getElementById('new-post-btn');
+  if (newPostButton) {
+    newPostButton.addEventListener('click', () => {
+      openComposeModal((post) => {
+        feedList.prepend(buildPostFeedItem(post));
+      });
+    });
+  }
+
+  const response = await fetch('/api/posts', { credentials: 'include' });
+  if (!response.ok) return;
+  const data = (await response.json()) as { success: boolean; posts?: SafePost[] };
+  if (!data.success || !data.posts) return;
+
+  const fragment = document.createDocumentFragment();
+  data.posts.forEach((post) => fragment.appendChild(buildPostFeedItem(post)));
+  feedList.prepend(fragment);
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const user = await fetchCurrentUser();
   updateSigninLinks(user);
@@ -439,9 +854,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupRegisterForm();
   setupSelectRoleForm();
   setupLogoutButtons();
-  if (dashboardAllowed) {
+  if (dashboardAllowed && user) {
     renderDashboardUser(user);
     setupAdminPanel();
+    setupFeed(user);
   }
   if (profileAllowed) {
     renderProfilePage(user);
