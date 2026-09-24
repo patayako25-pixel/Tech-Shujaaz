@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Choose Your Profile · Vijana Hub</title>
+<meta name="description" content="Choose your profile type on Vijana Mental Hub.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+#therapist-fields { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid #E0E6E4; }
+#therapist-fields .field { margin-bottom: 14px; display: flex; flex-direction: column; gap: 4px; }
+#therapist-fields label { font-weight: 600; }
+#therapist-fields input, #therapist-fields textarea {
+  padding: 10px 12px; border: 1px solid #D5DEDA; border-radius: 8px; font-family: inherit; font-size: 1em;
+}
+#therapist-fields textarea { min-height: 90px; resize: vertical; }
+#therapist-fields .field-hint { color: #6B7A76; font-size: 0.85em; }
+</style>
+</head>
+<body data-choose-profile="true">
+
+<div class="helpline-bar">
+  In crisis right now? Kenya Red Cross Emergency: <a href="tel:1199">1199</a> · Befrienders Kenya: <a href="tel:+254722178177">0722 178 177</a>
+</div>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark"></span> Vijana Hub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <a href="about.html">About Us</a>
+      <a href="resources.html">Resources</a>
+      <a href="events.html">Events/Workshops</a>
+      <a href="blog.html">Blog</a>
+      <a href="get-involved.html">Get Involved</a>
+      <a href="contact.html">Contact</a>
+      <a href="choose-profile.html" class="nav-signin" aria-current="page"><span class="user-name-slot">Account</span></a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="auth-section">
+    <div class="container auth-container">
+      <div class="auth-card">
+        <span class="kicker">One last step</span>
+        <h1 class="auth-title">Choose your profile type</h1>
+        <p class="auth-subtitle">This decides which dashboard and features you'll see. You can only pick once, so choose the one that fits you now.</p>
+
+        <form id="role-select-form" class="form-grid" novalidate>
+          <div class="role-options">
+            <label class="role-option">
+              <input type="radio" name="role" value="user" checked>
+              <span>
+                <strong>Normal User</strong>
+                <small>Browse resources and join the community</small>
+              </span>
+            </label>
+            <label class="role-option">
+              <input type="radio" name="role" value="mentor">
+              <span>
+                <strong>Volunteer Mentor and partner</strong>
+                <small>Support and guide other members</small>
+              </span>
+            </label>
+            <label class="role-option">
+              <input type="radio" name="role" value="therapist">
+              <span>
+                <strong>Verified Therapist</strong>
+                <small>Requires admin approval before you're marked verified</small>
+              </span>
+            </label>
+          </div>
+
+          <div id="therapist-fields">
+            <p class="field-hint">Admins review these details before approving therapist accounts.</p>
+            <div class="field">
+              <label for="therapist-email">Email address</label>
+              <input type="email" id="therapist-email" name="therapist-email" placeholder="you@example.com">
+            </div>
+            <div class="field">
+              <label for="therapist-phone">Phone number <span class="field-hint">(optional)</span></label>
+              <input type="tel" id="therapist-phone" name="therapist-phone" placeholder="+254 7xx xxx xxx">
+            </div>
+            <div class="field">
+              <label for="therapist-credentials">Qualifications / credentials <span class="field-hint">(optional)</span></label>
+              <textarea id="therapist-credentials" name="therapist-credentials" placeholder="License number, training, areas of specialization..."></textarea>
+            </div>
+          </div>
+
+          <p id="role-select-message" class="auth-message" aria-live="polite"></p>
+          <button type="submit" class="btn btn-primary auth-submit">Continue</button>
+        </form>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><span class="logo-mark"></span> Vijana Hub</div>
+        <p style="color:#CFE1DE; max-width:32ch;">A safe space for Kenyan youth to discuss mental health, access resources, and connect with peers.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul class="footer-links">
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="resources.html">Resources</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="blog.html">Blog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Involved</h4>
+        <ul class="footer-links">
+          <li><a href="get-involved.html">Volunteer</a></li>
+          <li><a href="get-involved.html#donate">Donate</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Follow</h4>
+        <div class="social-row">
+          <a href="#" aria-label="Facebook">Fb</a>
+          <a href="#" aria-label="Instagram">Ig</a>
+          <a href="#" aria-label="Twitter / X">X</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Vijana Mental Hub · Built by Tech Shujaaz</span>
+      <span>Nairobi, Kenya</span>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script src="auth.js"></script>
+</body>
+</html>

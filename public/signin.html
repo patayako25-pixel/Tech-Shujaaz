@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In · Vijana Hub</title>
+<meta name="description" content="Sign in or create an account with Vijana Mental Hub.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="helpline-bar">
+  In crisis right now? Kenya Red Cross Emergency: <a href="tel:1199">1199</a> · Befrienders Kenya: <a href="tel:+254722178177">0722 178 177</a>
+</div>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark"></span> Vijana Hub</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <a href="about.html">About Us</a>
+      <a href="resources.html">Resources</a>
+      <a href="events.html">Events/Workshops</a>
+      <a href="blog.html">Blog</a>
+      <a href="get-involved.html">Get Involved</a>
+      <a href="contact.html">Contact</a>
+      <a href="signin.html" class="nav-signin" aria-current="page">Sign In</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="auth-section">
+    <div class="container auth-container">
+      <div class="auth-card">
+        <span class="kicker">Member access</span>
+        <h1 class="auth-title">Welcome to Vijana Hub</h1>
+        <p class="auth-subtitle">Sign in to your account, or create a new one to get started.</p>
+
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab active" data-target="panel-signin">Sign In</button>
+          <button type="button" class="auth-tab" data-target="panel-register">Register</button>
+        </div>
+
+        <div id="panel-signin" class="auth-panel active">
+          <form id="signin-form" class="form-grid" novalidate>
+            <div>
+              <label for="signin-username">Username</label>
+              <input type="text" id="signin-username" name="username" autocomplete="username" required>
+            </div>
+            <div>
+              <label for="signin-password">Password</label>
+              <input type="password" id="signin-password" name="password" autocomplete="current-password" required>
+            </div>
+            <p id="signin-message" class="auth-message" aria-live="polite"></p>
+            <button type="submit" class="btn btn-primary auth-submit">Sign In</button>
+          </form>
+        </div>
+
+        <div id="panel-register" class="auth-panel">
+          <form id="register-form" class="form-grid" novalidate>
+            <div>
+              <label for="register-username">Choose a username</label>
+              <input type="text" id="register-username" name="username" autocomplete="username" required>
+            </div>
+            <div>
+              <label for="register-password">Choose a password</label>
+              <input type="password" id="register-password" name="password" autocomplete="new-password" required>
+            </div>
+            <div>
+              <label for="register-confirm">Confirm password</label>
+              <input type="password" id="register-confirm" name="confirm" autocomplete="new-password" required>
+            </div>
+            <p id="register-message" class="auth-message" aria-live="polite"></p>
+            <button type="submit" class="btn btn-primary auth-submit">Create Account</button>
+          </form>
+        </div>
+
+        <p class="auth-note">You'll stay signed in on this device for 30 days. Visiting again resets the clock.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><span class="logo-mark"></span> Vijana Hub</div>
+        <p style="color:#CFE1DE; max-width:32ch;">A safe space for Kenyan youth to discuss mental health, access resources, and connect with peers.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul class="footer-links">
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="resources.html">Resources</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="blog.html">Blog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Involved</h4>
+        <ul class="footer-links">
+          <li><a href="get-involved.html">Volunteer</a></li>
+          <li><a href="get-involved.html#donate">Donate</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Follow</h4>
+        <div class="social-row">
+          <a href="#" aria-label="Facebook">Fb</a>
+          <a href="#" aria-label="Instagram">Ig</a>
+          <a href="#" aria-label="Twitter / X">X</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Vijana Mental Hub · Built by Tech Shujaaz</span>
+      <span>Nairobi, Kenya</span>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script src="auth.js"></script>
+</body>
+</html>

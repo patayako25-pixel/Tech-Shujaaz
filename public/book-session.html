@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book a Session · Vijana Hub</title>
+<meta name="description" content="Book a session with a verified therapist on Vijana Mental Hub.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+.booking-shell { display: grid; gap: 24px; }
+.therapist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.therapist-card { border: 1px solid #E0E6E4; border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.therapist-card .avatar { width: 48px; height: 48px; border-radius: 50%; background: #E0E6E4; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+.slot-list { display: grid; gap: 10px; }
+.slot-card { border: 1px solid #E0E6E4; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.slot-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.slot-badge { padding: 2px 10px; border-radius: 999px; font-size: 0.85em; font-weight: 600; }
+.slot-badge.virtual { background: #EFE7FB; color: #5B3A9C; }
+.slot-badge.physical { background: #FBF0DD; color: #8A6A1F; }
+.back-link { display: inline-block; margin-bottom: 12px; }
+.status-msg { padding: 10px 14px; border-radius: 8px; }
+.status-msg.error { background: #FBE4E4; color: #8A2E2E; }
+.status-msg.success { background: #E1F0E6; color: #2E6B45; }
+</style>
+</head>
+<body data-required-role="user">
+
+<div class="helpline-bar">
+  In crisis right now? Kenya Red Cross Emergency: <a href="tel:1199">1199</a> · Befrienders Kenya: <a href="tel:+254722178177">0722 178 177</a>
+</div>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark"></span> Vijana Hub</a>
+  </div>
+</header>
+
+<main>
+  <section class="dashboard-section">
+    <div class="container">
+      <a class="back-link" href="dashboard-user.html">&larr; Back to dashboard</a>
+      <div class="dashboard-head">
+        <div>
+          <span class="kicker">Book a Session</span>
+          <h1 id="page-title">Choose a therapist</h1>
+        </div>
+      </div>
+
+      <div id="status-msg" class="status-msg" style="display:none;"></div>
+
+      <div class="booking-shell">
+        <div id="therapist-view">
+          <div class="therapist-grid" id="therapist-grid"></div>
+          <div class="view-empty" id="therapist-empty" style="display:none;">
+            <span class="logo-mark"></span>
+            <p>No verified therapists are available to book right now.</p>
+          </div>
+        </div>
+
+        <div id="slot-view" style="display:none;">
+          <button class="btn btn-secondary" id="back-to-therapists" type="button">&larr; Choose a different therapist</button>
+          <h2 id="slot-therapist-name" style="margin-top:16px;"></h2>
+          <div class="slot-list" id="slot-list"></div>
+          <div class="view-empty" id="slot-empty" style="display:none;">
+            <span class="logo-mark"></span>
+            <p>This therapist has no open slots right now.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-bottom">
+      <span>© 2026 Vijana Mental Hub · Built by Tech Shujaaz</span>
+      <span>Nairobi, Kenya</span>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script src="auth.js"></script>
+<script>
+function formatSlot(startTime, endTime) {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  const dateStr = start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const startStr = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const endStr = end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return dateStr + ' · ' + startStr + ' - ' + endStr;
+}
+
+function showStatus(message, isError) {
+  const el = document.getElementById('status-msg');
+  el.textContent = message;
+  el.className = 'status-msg ' + (isError ? 'error' : 'success');
+  el.style.display = 'block';
+}
+
+function hideStatus() {
+  document.getElementById('status-msg').style.display = 'none';
+}
+
+async function loadTherapists() {
+  const response = await fetch('/api/therapists', { credentials: 'include' });
+  const data = await response.json();
+  const grid = document.getElementById('therapist-grid');
+  const empty = document.getElementById('therapist-empty');
+  grid.innerHTML = '';
+  if (!data.therapists || data.therapists.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  data.therapists.forEach((therapist) => {
+    const card = document.createElement('div');
+    card.className = 'therapist-card';
+    const initial = (therapist.display_name || therapist.username).charAt(0).toUpperCase();
+    card.innerHTML =
+      '<div class="avatar">' + initial + '</div>' +
+      '<strong>' + (therapist.display_name || therapist.username) + '</strong>' +
+      '<p>' + (therapist.bio || 'No bio yet.') + '</p>';
+    const button = document.createElement('button');
+    button.className = 'btn btn-primary';
+    button.type = 'button';
+    button.textContent = 'View availability';
+    button.addEventListener('click', () => showSlots(therapist));
+    card.appendChild(button);
+    grid.appendChild(card);
+  });
+}
+
+async function showSlots(therapist) {
+  hideStatus();
+  document.getElementById('therapist-view').style.display = 'none';
+  document.getElementById('slot-view').style.display = 'block';
+  document.getElementById('slot-therapist-name').textContent = therapist.display_name || therapist.username;
+
+  const response = await fetch('/api/therapists/' + encodeURIComponent(therapist.username) + '/slots', { credentials: 'include' });
+  const data = await response.json();
+  const list = document.getElementById('slot-list');
+  const empty = document.getElementById('slot-empty');
+  list.innerHTML = '';
+
+  if (!data.slots || data.slots.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  data.slots.forEach((slot) => {
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+    const info = document.createElement('span');
+    info.className = 'slot-info';
+    const label = document.createElement('span');
+    label.textContent = formatSlot(slot.start_time, slot.end_time);
+    const typeBadge = document.createElement('span');
+    typeBadge.className = 'slot-badge ' + slot.session_type;
+    typeBadge.textContent = slot.session_type === 'physical' ? 'Physical' : 'Virtual';
+    info.appendChild(label);
+    info.appendChild(typeBadge);
+    const button = document.createElement('button');
+    button.className = 'btn btn-primary';
+    button.type = 'button';
+    button.textContent = 'Book';
+    button.addEventListener('click', () => bookSlot(slot.id, therapist, button));
+    card.appendChild(info);
+    card.appendChild(button);
+    list.appendChild(card);
+  });
+}
+
+async function bookSlot(slotId, therapist, button) {
+  button.disabled = true;
+  const response = await fetch('/api/bookings', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slotId }),
+  });
+  const data = await response.json();
+  if (data.success) {
+    showStatus('Session booked with ' + (therapist.display_name || therapist.username) + '.', false);
+    showSlots(therapist);
+  } else {
+    showStatus(data.message || 'Could not book that session.', true);
+    button.disabled = false;
+  }
+}
+
+document.getElementById('back-to-therapists').addEventListener('click', () => {
+  hideStatus();
+  document.getElementById('slot-view').style.display = 'none';
+  document.getElementById('therapist-view').style.display = 'block';
+});
+
+document.addEventListener('DOMContentLoaded', loadTherapists);
+</script>
+</body>
+</html>

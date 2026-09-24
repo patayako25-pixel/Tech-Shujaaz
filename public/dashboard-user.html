@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard · Vijana Hub</title>
+<meta name="description" content="Your Vijana Mental Hub dashboard — profile, articles, blogs, events and sessions.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-required-role="user">
+
+<div class="helpline-bar">
+  In crisis right now? Kenya Red Cross Emergency: <a href="tel:1199">1199</a> · Befrienders Kenya: <a href="tel:+254722178177">0722 178 177</a>
+</div>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark"></span> Vijana Hub</a>
+  </div>
+</header>
+
+<main>
+  <section class="dashboard-section">
+    <div class="container">
+      <div class="dashboard-head">
+        <div>
+          <span class="kicker">Dashboard</span>
+          <h1>Welcome back, <span class="user-name-slot">Friend</span></h1>
+        </div>
+      </div>
+
+      <div class="app-shell collapsed" id="app-shell">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle dashboard" aria-expanded="false">☰</button>
+
+        <aside class="app-sidebar">
+          <div class="sidebar-user">
+            <div class="sidebar-avatar" id="sidebar-avatar">U</div>
+            <div>
+              <strong class="user-name-slot">Friend</strong>
+              <small>Member</small>
+            </div>
+          </div>
+          <nav class="sidebar-nav">
+            <a class="sidebar-link" href="index.html">Home</a>
+            <a class="sidebar-link" href="profile.html">Profile</a>
+            <button class="sidebar-link" type="button" data-view="articles">Articles</button>
+            <button class="sidebar-link" type="button" data-view="blogs">Blogs</button>
+            <button class="sidebar-link" type="button" data-view="events">Events</button>
+            <a class="sidebar-link" href="book-session.html">Book a Session</a>
+          </nav>
+          <button class="btn btn-secondary sidebar-logout logout-btn" type="button">Log Out</button>
+        </aside>
+
+        <div class="app-main">
+          <div class="dashboard-view active" id="view-feed">
+            <div class="view-head">
+              <h2>Your Feed</h2>
+              <p>Latest articles, blog posts and events from Vijana Hub.</p>
+            </div>
+            <div class="feed-list" id="feed-list">
+              <article class="feed-item type-article">
+                <span class="meta">Article</span>
+                <h3>Coping with stress</h3>
+                <p>Practical, everyday tools for managing school, work, and family pressure without burning out.</p>
+              </article>
+              <article class="feed-item type-blog">
+                <span class="meta">Blog</span>
+                <h3>What I wish I knew before my first therapy session</h3>
+                <p>A community member shares what helped them take the first step.</p>
+              </article>
+              <article class="feed-item type-event">
+                <span class="meta">Event</span>
+                <h3>Understanding mental health workshop</h3>
+                <p>A beginner-friendly session open to all members.</p>
+              </article>
+            </div>
+          </div>
+
+          <div class="dashboard-view" id="view-articles">
+            <div class="view-head">
+              <h2>Articles</h2>
+              <p>Articles from our therapists and mentors, saved and recommended for you.</p>
+            </div>
+            <div class="view-empty">
+              <span class="logo-mark"></span>
+              <p>Your articles will show up here.</p>
+            </div>
+          </div>
+
+          <div class="dashboard-view" id="view-blogs">
+            <div class="view-head">
+              <h2>Blogs</h2>
+              <p>Community blog posts from mentors and fellow members.</p>
+            </div>
+            <div class="view-empty">
+              <span class="logo-mark"></span>
+              <p>Blog posts will show up here.</p>
+            </div>
+          </div>
+
+          <div class="dashboard-view" id="view-events">
+            <div class="view-head">
+              <h2>Events</h2>
+              <p>Workshops and events you can join.</p>
+            </div>
+            <div class="view-empty">
+              <span class="logo-mark"></span>
+              <p>Events you're attending will show up here.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><span class="logo-mark"></span> Vijana Hub</div>
+        <p style="color:#CFE1DE; max-width:32ch;">A safe space for Kenyan youth to discuss mental health, access resources, and connect with peers.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul class="footer-links">
+          <li><a href="about.html">About Us</a></li>
+          <li><a href="resources.html">Resources</a></li>
+          <li><a href="events.html">Events</a></li>
+          <li><a href="blog.html">Blog</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Involved</h4>
+        <ul class="footer-links">
+          <li><a href="get-involved.html">Volunteer</a></li>
+          <li><a href="get-involved.html#donate">Donate</a></li>
+          <li><a href="contact.html">Contact</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Follow</h4>
+        <div class="social-row">
+          <a href="#" aria-label="Facebook">Fb</a>
+          <a href="#" aria-label="Instagram">Ig</a>
+          <a href="#" aria-label="Twitter / X">X</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Vijana Mental Hub · Built by Tech Shujaaz</span>
+      <span>Nairobi, Kenya</span>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script src="auth.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const shell = document.getElementById('app-shell');
+  const toggle = document.getElementById('sidebar-toggle');
+  toggle.addEventListener('click', () => {
+    const isCollapsed = shell.classList.toggle('collapsed');
+    toggle.setAttribute('aria-expanded', String(!isCollapsed));
+  });
+
+  const links = document.querySelectorAll('.sidebar-link[data-view]');
+  const views = document.querySelectorAll('.dashboard-view');
+  links.forEach((link) => {
+    link.addEventListener('click', () => {
+      const target = link.dataset.view;
+      links.forEach((l) => l.classList.remove('active'));
+      link.classList.add('active');
+      views.forEach((view) => {
+        view.classList.toggle('active', view.id === 'view-' + target);
+      });
+    });
+  });
+});
+</script>
+</body>
+</html>

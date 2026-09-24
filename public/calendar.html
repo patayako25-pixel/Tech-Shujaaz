@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendar · Vijana Hub</title>
+<meta name="description" content="Manage your availability and see booked sessions on Vijana Mental Hub.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+.calendar-shell { display: grid; gap: 24px; }
+.add-slot-form { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; border: 1px solid #E0E6E4; border-radius: 12px; padding: 16px; }
+.add-slot-form .field { display: flex; flex-direction: column; gap: 4px; }
+.slot-list { display: grid; gap: 10px; }
+.slot-card { border: 1px solid #E0E6E4; border-radius: 10px; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.slot-badge { padding: 2px 10px; border-radius: 999px; font-size: 0.85em; font-weight: 600; }
+.slot-badge.open { background: #E1F0E6; color: #2E6B45; }
+.slot-badge.booked { background: #E4EEFB; color: #2E4E8A; }
+.slot-badge.virtual { background: #EFE7FB; color: #5B3A9C; }
+.slot-badge.physical { background: #FBF0DD; color: #8A6A1F; }
+.slot-badges { display: flex; gap: 8px; flex-wrap: wrap; }
+.back-link { display: inline-block; margin-bottom: 12px; }
+.status-msg { padding: 10px 14px; border-radius: 8px; }
+.status-msg.error { background: #FBE4E4; color: #8A2E2E; }
+.status-msg.success { background: #E1F0E6; color: #2E6B45; }
+</style>
+</head>
+<body data-required-role="therapist">
+
+<div class="helpline-bar">
+  In crisis right now? Kenya Red Cross Emergency: <a href="tel:1199">1199</a> · Befrienders Kenya: <a href="tel:+254722178177">0722 178 177</a>
+</div>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark"></span> Vijana Hub</a>
+  </div>
+</header>
+
+<main>
+  <section class="dashboard-section">
+    <div class="container">
+      <a class="back-link" href="dashboard-therapist.html">&larr; Back to dashboard</a>
+      <div class="dashboard-head">
+        <div>
+          <span class="kicker">Calendar</span>
+          <h1>Your availability</h1>
+        </div>
+      </div>
+
+      <div id="status-msg" class="status-msg" style="display:none;"></div>
+      <div class="pending-banner" id="unverified-banner" style="display:none;">
+        Your profile must be verified by an admin before you can add availability.
+      </div>
+
+      <div class="calendar-shell">
+        <form class="add-slot-form" id="add-slot-form">
+          <div class="field">
+            <label for="slot-date">Date</label>
+            <input type="date" id="slot-date" required>
+          </div>
+          <div class="field">
+            <label for="slot-start">Start time</label>
+            <input type="time" id="slot-start" required>
+          </div>
+          <div class="field">
+            <label for="slot-end">End time</label>
+            <input type="time" id="slot-end" required>
+          </div>
+          <div class="field">
+            <label for="slot-type">Session type</label>
+            <select id="slot-type" required>
+              <option value="virtual">Virtual</option>
+              <option value="physical">Physical</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" type="submit" id="add-slot-btn">Add slot</button>
+        </form>
+
+        <div>
+          <h2>Upcoming</h2>
+          <div class="slot-list" id="slot-list"></div>
+          <div class="view-empty" id="slot-empty" style="display:none;">
+            <span class="logo-mark"></span>
+            <p>You have no upcoming availability. Add a slot above.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-bottom">
+      <span>© 2026 Vijana Mental Hub · Built by Tech Shujaaz</span>
+      <span>Nairobi, Kenya</span>
+    </div>
+  </div>
+</footer>
+
+<script src="script.js"></script>
+<script src="auth.js"></script>
+<script>
+function formatSlot(startTime, endTime) {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  const dateStr = start.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const startStr = start.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const endStr = end.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return dateStr + ' · ' + startStr + ' - ' + endStr;
+}
+
+function showStatus(message, isError) {
+  const el = document.getElementById('status-msg');
+  el.textContent = message;
+  el.className = 'status-msg ' + (isError ? 'error' : 'success');
+  el.style.display = 'block';
+}
+
+async function loadCurrentUser() {
+  const response = await fetch('/api/me', { credentials: 'include' });
+  const data = await response.json();
+  return data.user;
+}
+
+async function loadSlots() {
+  const response = await fetch('/api/my-slots', { credentials: 'include' });
+  const data = await response.json();
+  const list = document.getElementById('slot-list');
+  const empty = document.getElementById('slot-empty');
+  list.innerHTML = '';
+
+  if (!data.slots || data.slots.length === 0) {
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  data.slots.forEach((slot) => {
+    const card = document.createElement('div');
+    card.className = 'slot-card';
+    const label = document.createElement('span');
+    label.textContent = formatSlot(slot.start_time, slot.end_time);
+    const badgeGroup = document.createElement('span');
+    badgeGroup.className = 'slot-badges';
+    const statusBadge = document.createElement('span');
+    statusBadge.className = 'slot-badge ' + slot.status;
+    statusBadge.textContent = slot.status === 'booked' ? ('Booked by ' + slot.booked_by) : 'Open';
+    const typeBadge = document.createElement('span');
+    typeBadge.className = 'slot-badge ' + slot.session_type;
+    typeBadge.textContent = slot.session_type === 'physical' ? 'Physical' : 'Virtual';
+    badgeGroup.appendChild(statusBadge);
+    badgeGroup.appendChild(typeBadge);
+    card.appendChild(label);
+    card.appendChild(badgeGroup);
+    if (slot.status === 'open') {
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'btn btn-secondary';
+      cancelBtn.type = 'button';
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.addEventListener('click', () => cancelSlot(slot.id));
+      card.appendChild(cancelBtn);
+    }
+    list.appendChild(card);
+  });
+}
+
+async function cancelSlot(slotId) {
+  const response = await fetch('/api/slots/' + slotId, { method: 'DELETE', credentials: 'include' });
+  const data = await response.json();
+  if (data.success) {
+    loadSlots();
+  } else {
+    showStatus(data.message || 'Could not remove that slot.', true);
+  }
+}
+
+document.getElementById('add-slot-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const date = document.getElementById('slot-date').value;
+  const startTime = document.getElementById('slot-start').value;
+  const endTime = document.getElementById('slot-end').value;
+  const sessionType = document.getElementById('slot-type').value;
+  if (!date || !startTime || !endTime) return;
+
+  const startIso = new Date(date + 'T' + startTime).toISOString();
+  const endIso = new Date(date + 'T' + endTime).toISOString();
+
+  const response = await fetch('/api/slots', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ startTime: startIso, endTime: endIso, sessionType }),
+  });
+  const data = await response.json();
+  if (data.success) {
+    showStatus('Slot added.', false);
+    document.getElementById('add-slot-form').reset();
+    loadSlots();
+  } else {
+    showStatus(data.message || 'Could not add that slot.', true);
+  }
+});
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = await loadCurrentUser();
+  if (user && !user.verified) {
+    document.getElementById('unverified-banner').style.display = 'flex';
+    document.getElementById('add-slot-form').style.display = 'none';
+  }
+  loadSlots();
+});
+</script>
+</body>
+</html>
