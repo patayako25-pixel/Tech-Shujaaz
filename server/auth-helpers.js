@@ -15,13 +15,23 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -36,6 +46,8 @@ exports.createSession = createSession;
 exports.requireUser = requireUser;
 exports.requireAdmin = requireAdmin;
 exports.requireRole = requireRole;
+exports.sanitizePost = sanitizePost;
+exports.sanitizeComment = sanitizeComment;
 const db_1 = __importDefault(require("./db"));
 exports.CHOOSE_PROFILE_URL = 'choose-profile.html';
 exports.COOKIE_NAME = 'vijana_session';
@@ -138,5 +150,27 @@ function requireRole(role) {
         }
         req.currentUser = user;
         next();
+    };
+}
+function sanitizePost(row) {
+    return {
+        id: row.id,
+        authorUsername: row.author_username,
+        authorDisplayName: row.author_display_name || row.author_username,
+        title: row.title,
+        content: row.content,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        commentCount: Number(row.comment_count) || 0,
+    };
+}
+function sanitizeComment(row) {
+    return {
+        id: row.id,
+        postId: row.post_id,
+        authorUsername: row.author_username,
+        authorDisplayName: row.author_display_name || row.author_username,
+        content: row.content,
+        createdAt: row.created_at,
     };
 }

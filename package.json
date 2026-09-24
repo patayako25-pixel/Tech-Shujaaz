@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "server": "npm run build:client && npm run build:server && node server/server.js",
-    "build": "npm run build:client && npm run build:server",
-    "start": "node server/server.js",
-    "build:server": "tsc --target ES2020 --module commonjs --esModuleInterop --strict --skipLibCheck server/server.ts server/db.ts",
-    "build:client": "tsc --target ES2017 --lib DOM,ES2017 --strict --skipLibCheck --removeComments public/auth.ts public/payments.ts"
-  },
+  "server": "npm run build:client && npm run build:server && node server/server.js",
+  "build": "npm run build:client && npm run build:server",
+  "start": "node server/server.js",
+  "build:server": "tsc --ignoreConfig --target ES2020 --module commonjs --esModuleInterop --strict --skipLibCheck server/server.ts server/db.ts",
+  "build:client": "tsc --ignoreConfig --target ES2017 --lib DOM,ES2017 --strict --skipLibCheck --removeComments public/auth.ts public/payments.ts"
+},
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
