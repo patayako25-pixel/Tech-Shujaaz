@@ -1,0 +1,10 @@
+{
+  "framework": null,
+  "outputDirectory": "public",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://YOUR-SERVICE.onrender.com/api/:path*"
+    }
+  ]
+}
